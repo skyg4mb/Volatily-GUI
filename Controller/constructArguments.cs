@@ -9,7 +9,7 @@ namespace Volatily_GUI.Controller
 {
     public class constructArguments
     {
-        public string Argument(string hability, evidence evidence)
+        public string Argument(string hability, evidence evidence, process process)
         {
             switch (hability)
             {
@@ -21,17 +21,33 @@ namespace Volatily_GUI.Controller
                     return argGetNetScan(evidence);
                 case "getCommands":
                     return argGetCommands(evidence);
+                case "verInfo":
+                    return argVerInfo(evidence);
+                case "processDlls":
+                    return argListDlls(evidence, process);
                 default:
                     // Default stuff
                     return "noInfo";
             }
         }
 
+        private string argListDlls(evidence evidence, process process)
+        {
+            string response;
+            response = @"-f " + evidence.Route + " --profile=" + evidence.Profile + " dlllist -p " + process.Pid;
+            return response;
+        }
 
+        private string argVerInfo(evidence evidence)
+        {
+            string response;
+            response = @"-f " + evidence.Route + " --profile=" + evidence.Profile + " verinfo";
+            return response;
+        }
         private string argGetCommands(evidence evidence)
         {
             string response;
-            response = @"-f " + evidence.Route + " cmdscan";
+            response = @"-f " + evidence.Route + " --profile=" + evidence.Profile + " cmdscan";
             return response;
         }
         private string argGetImageInfo(evidence evidence)

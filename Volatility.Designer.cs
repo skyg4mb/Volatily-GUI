@@ -40,6 +40,7 @@ namespace Volatily_GUI
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.contextMenuMemDump = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.contextMenuAnalizeProfile = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.contextMenuStripProcess = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.contextMenuEvidence.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.network)).BeginInit();
             this.SuspendLayout();
@@ -81,6 +82,7 @@ namespace Volatily_GUI
             this.Process.Name = "Process";
             this.Process.Size = new System.Drawing.Size(695, 1234);
             this.Process.TabIndex = 1;
+            this.Process.NodeMouseClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.Process_NodeMouseClick);
             // 
             // network
             // 
@@ -127,6 +129,12 @@ namespace Volatily_GUI
             this.contextMenuAnalizeProfile.Name = "contextMenuAnalizeProfile";
             this.contextMenuAnalizeProfile.Size = new System.Drawing.Size(61, 4);
             // 
+            // contextMenuStripProcess
+            // 
+            this.contextMenuStripProcess.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.contextMenuStripProcess.Name = "contextMenuStripProcess";
+            this.contextMenuStripProcess.Size = new System.Drawing.Size(61, 4);
+            // 
             // Volatility
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
@@ -157,6 +165,7 @@ namespace Volatily_GUI
         private System.Windows.Forms.ToolStripMenuItem addEvidence;
         private System.Windows.Forms.ContextMenuStrip contextMenuMemDump;
         private System.Windows.Forms.ContextMenuStrip contextMenuAnalizeProfile;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStripProcess;
     }
 }
 

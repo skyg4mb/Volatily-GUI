@@ -17,7 +17,7 @@ namespace Volatily_GUI
     public partial class Volatility : Form
     {
         evidence memoryDump;
-        string commands;
+        DataTable processTable;
 
         public Volatility()
         {
@@ -27,7 +27,10 @@ namespace Volatily_GUI
             contextMenuAnalizeProfile.Items.Add("Network scan", null, networkDumpClick);
             contextMenuAnalizeProfile.Items.Add("Proccess list", null, proccessListClick);
             contextMenuAnalizeProfile.Items.Add("Commands", null, commandsClick);
-
+            contextMenuAnalizeProfile.Items.Add("VerInfo", null, verInfoClick);
+            contextMenuStripProcess.Items.Add("List dll", null, ListDllClick);
+            Process.ContextMenuStrip = contextMenuStripProcess;
+            
         }
 
         private void contextMenuEvidence_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -82,32 +85,58 @@ namespace Volatily_GUI
             evidence.SelectedNode.Nodes.Add("Win2016x64_14393");
         }
 
+
+        private void ListDllClick(object sender, System.EventArgs e)
+        {
+            foreach (DataRow row in processTable.Rows)
+            {
+                if (row["PID"].ToString().Trim() == Process.SelectedNode.Name.ToString().Trim())
+                {
+                    process process = new process(row[1].ToString(), row[0].ToString(), row[2].ToString(), row[3].ToString());
+                    var thread = new Thread(getProcessDlls);
+                    thread.Start(process);
+                    break;
+                }
+            }
+        }
+
+        private string obtainOffset(string process)
+        {
+            foreach (DataRow row in processTable.Rows)
+            {
+                if (row["PID"].ToString().Trim() == process)
+                {
+                    return (row[0].ToString());
+                }
+            }
+            return "No se logro obtener offset";
+        }
+
+        private void verInfoClick(Object sender, System.EventArgs e)
+        {
+            memoryDump.Profile = evidence.SelectedNode.Text;
+            var thread = new Thread(getverInfo);
+            thread.Start();
+        }
         private void networkDumpClick(Object sender, System.EventArgs e)
         {
-            Controller.Controller executeNetworkDump = new Controller.Controller();
             memoryDump.Profile = evidence.SelectedNode.Text;
-            executeNetworkDump.executeCommand("getNetScan", memoryDump);
+            var thread = new Thread(getNetScan);
+            thread.Start();
         }
 
         private void commandsClick(Object sender, System.EventArgs e)
         {
+            memoryDump.Profile = evidence.SelectedNode.Text;
             var thread = new Thread(getCommands);
-
+            thread.Start();
         }
 
         private void proccessListClick(Object sender, System.EventArgs e)
         {
-            Controller.Controller executeNetworkDump = new Controller.Controller();
             memoryDump.Profile = evidence.SelectedNode.Text;
-            string procesos = executeNetworkDump.executeCommand("getListProcess", memoryDump);
-            Volatily_GUI.Parser.parser tableProcesos = new Volatily_GUI.Parser.parser();
-            
-            DataTable table = tableProcesos.fixedColumnToTable(procesos);
-            
-            DataColumn[] keyColumn = new DataColumn[1];
-            keyColumn[0] = table.Columns["PID"];
-            table.PrimaryKey = keyColumn;
-            populateTreeView(table);
+            var thread = new Thread(getProccess);
+            thread.Start();
         }
 
         private void populateTreeView(DataTable myDataTable)
@@ -127,8 +156,6 @@ namespace Volatily_GUI
                 {
                     Process.Nodes.Add(myDataTable.Rows[i]["PID"].ToString(), myDataTable.Rows[i]["Name"].ToString());
                 }
-                
-                
             }
         }
 
@@ -141,19 +168,150 @@ namespace Volatily_GUI
         private void getCommands()
         {
             Controller.Controller executeGetCommands = new Controller.Controller();
-            memoryDump.Profile = evidence.SelectedNode.Text;
             textBox1.Invoke(new DisplayCommandsDelegate(DisplayCommands), "Buscando comandos en volcado de memoria");
-            string commands = executeGetCommands.executeCommand("getCommands", memoryDump);
+            string commands = executeGetCommands.executeCommand("getCommands", memoryDump, null);
             textBox1.Invoke(new DisplayCommandsDelegate(DisplayCommands), commands);
         }
 
         private void DisplayCommands(string commands)
         {
-            textBox1.Text = commands + "Busqueda finalizada";
+            if (commands == "")
+            {
+                textBox1.Text = "Busqueda de comandos finalizada sin resultados";
+            }
+            else
+            {
+                textBox1.Text = commands;
+            }
         }
 
         ///Fin de hilo de comandsos
+        ///
 
+
+
+
+
+        /// <summary>
+        /// Obtiene lista de procesos mediante hilo
+        /// </summary>
+        /// 
+
+        private delegate void DisplayProcessDelegate(DataTable table);
+        private void getProccess()
+        {
+            Controller.Controller executeNetworkDump = new Controller.Controller();
+            string procesos = executeNetworkDump.executeCommand("getListProcess", memoryDump, null);
+            Volatily_GUI.Parser.parser tableProcesos = new Volatily_GUI.Parser.parser();
+            DataTable table = tableProcesos.fixedColumnToTable(procesos);
+            DataColumn[] keyColumn = new DataColumn[1];
+            keyColumn[0] = table.Columns["PID"];
+            table.PrimaryKey = keyColumn;
+            Process.Invoke(new DisplayProcessDelegate(DisplayProccess), table);
+        }
+
+        private void DisplayProccess(DataTable table)
+        {
+            processTable = table;
+            populateTreeView(table);
+        }
+
+        ///Fin de hilo de Procesos
+        ///
+
+
+        /// <summary>
+        /// Retorna informacion del sistema a partir de la memoria volatil
+        /// </summary>
+        /// 
+        private delegate void DisplayInfoDelegate(string info);
+        private void getverInfo()
+        {
+            Controller.Controller executeGetCommands = new Controller.Controller();
+            textBox1.Invoke(new DisplayCommandsDelegate(DisplayInfo), "Buscando informacion del sistema");
+            string info = executeGetCommands.executeCommand("verInfo", memoryDump, null);
+            textBox1.Invoke(new DisplayCommandsDelegate(DisplayInfo), info);
+        }
+
+        private void DisplayInfo(string info)
+        {
+            if (info == "")
+            {
+                textBox1.Text = "Busqueda de comandos finalizada sin resultados";
+            }
+            else
+            {
+                textBox1.Text = info;
+            }
+        }
+
+        private void Process_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            
+        }
+
+        ///Fin de hilo de informacion del sistema
+        ///
+
+
+        /// <summary>
+        /// Retorna informacion de dlls asociadas a un proceso
+        /// </summary>
+        /// 
+        private delegate void DisplaydllDelegate(string info);
+        private void getProcessDlls(object process)
+        {
+            Controller.Controller executeGetCommands = new Controller.Controller();
+            textBox2.Invoke(new DisplaydllDelegate(DisplayDlls), "Buscando informacion de proceso");
+            string info = executeGetCommands.executeCommand("processDlls", memoryDump, (process)process);
+            textBox2.Invoke(new DisplaydllDelegate(DisplayDlls), info);
+        }
+
+        private void DisplayDlls(string info)
+        {
+            if (info == "")
+            {
+                textBox2.Text = "Busqueda de comandos finalizada sin resultados";
+            }
+            else
+            {
+                textBox2.Text = info;
+            }
+        }
+
+        ///Fin de hilo de informacion del sistema
+        ///
+
+
+
+        /// <summary>
+        /// Hilo que obtiene las conexiones de red 
+        /// </summary>
+        /// 
+
+        private delegate void DisplayNetScanDelegate(string commands);
+        private void getNetScan()
+        {
+            Controller.Controller executeNetworkDump = new Controller.Controller();
+            textBox1.Invoke(new DisplayCommandsDelegate(DisplayNetScan), "Buscando conexiones en volcado de memoria");
+            string commands = executeNetworkDump.executeCommand("getNetScan", memoryDump, null);
+            textBox1.Invoke(new DisplayCommandsDelegate(DisplayNetScan), commands);
+        }
+
+        private void DisplayNetScan(string commands)
+        {
+            if (commands == "")
+            {
+                textBox1.Text = "Busqueda de red finalizada sin resultados";
+            }
+            else
+            {
+                textBox1.Text = commands;
+            }
+        }
+
+        ///Fin de hilo de comandsos
+        ///
 
     }
 }

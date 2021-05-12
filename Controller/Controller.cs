@@ -10,11 +10,11 @@ namespace Volatily_GUI.Controller
 {
     class Controller
     {
-        public string executeCommand(string command, evidence evidence)
+        public string executeCommand(string command, evidence evidence, process process)
         {
             constructArguments construct = new constructArguments();
             Service.Service getResponse = new Service.Service();
-            string argument = construct.Argument(command, evidence);
+            string argument = construct.Argument(command, evidence, process);
             string result = getResponse.getVolatilityResponse(argument);
             return result;
         }
